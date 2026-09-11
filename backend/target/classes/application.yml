@@ -1,0 +1,94 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: training-system
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/training_system?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 20060722Mary
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.training.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# JWT配置
+jwt:
+  secret: TrainingSystemSecretKey2024ForJava17AndSpringBoot3
+  expiration: 86400000
+
+# 文件上传配置
+upload:
+  path: ./uploads
+  allowed-types:
+    - doc
+    - docx
+    - pdf
+    - txt
+    - md
+    - py
+    - java
+    - js
+    - ts
+    - html
+    - css
+    - sql
+    - c
+    - cpp
+    - go
+    - rs
+    - php
+    - rb
+    - swift
+    - kt
+    - json
+    - xml
+    - yaml
+    - yml
+    - zip
+    - png
+    - jpg
+    - jpeg
+    - gif
+    - bmp
+    - webp
+
+# AI配置
+ai:
+  api-url: https://api.deepseek.com/v1/chat/completions
+  api-key: sk-85be0559ed024ee7aeb3ecb29f45af9d
+  model: deepseek-chat
+  timeout: 120
+
+# 评分权重配置
+evaluation:
+  weights:
+    completeness: 30
+    specification: 30
+    knowledge: 40
+
+# 日志配置
+logging:
+  level:
+    com.training: debug
+    org.springframework.security: info

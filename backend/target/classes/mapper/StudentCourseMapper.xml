@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.training.mapper.StudentCourseMapper">
+    
+    <select id="selectCourseIdsByStudentId" resultType="long">
+        SELECT course_id FROM student_course WHERE student_id = #{studentId}
+    </select>
+    
+    <select id="selectStudentIdsByCourseId" resultType="long">
+        SELECT student_id FROM student_course WHERE course_id = #{courseId}
+    </select>
+    
+    <select id="countByCourseId" resultType="int">
+        SELECT COUNT(*) FROM student_course WHERE course_id = #{courseId}
+    </select>
+    
+</mapper>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.training.mapper.EvaluationRecordMapper">
+    
+    <select id="selectClassStatistics" resultType="map">
+        SELECT 
+            c.class_name,
+            COUNT(DISTINCT r.id) as total_reports,
+            COUNT(DISTINCT e.id) as evaluated_reports,
+            COALESCE(AVG(e.total_score), 0) as avg_score,
+            COALESCE(MAX(e.total_score), 0) as max_score,
+            COALESCE(MIN(e.total_score), 0) as min_score
+        FROM sys_class c
+        LEFT JOIN sys_user u ON u.class_id = c.id AND u.role = 3
+        LEFT JOIN training_report r ON r.student_id = u.id
+        LEFT JOIN evaluation_record e ON e.report_id = r.id
+        WHERE c.id = #{classId}
+        GROUP BY c.id, c.class_name
+    </select>
+    
+    <select id="selectScoreDistribution" resultType="map">
+        SELECT 
+            CASE 
+                WHEN e.total_score &lt; 60 THEN '0-60'
+                WHEN e.total_score &lt; 70 THEN '60-70'
+                WHEN e.total_score &lt; 80 THEN '70-80'
+                WHEN e.total_score &lt; 90 THEN '80-90'
+                ELSE '90-100'
+            END as score_range,
+            COUNT(*) as count
+        FROM evaluation_record e
+        LEFT JOIN training_report r ON e.report_id = r.id
+        LEFT JOIN sys_user u ON r.student_id = u.id
+        WHERE u.class_id = #{classId}
+        GROUP BY score_range
+        ORDER BY score_range
+    </select>
+    
+    <select id="selectAllScores" resultType="map">
+        SELECT 
+            u.username as username,
+            u.real_name as student_name,
+            c.class_name,
+            r.title as report_title,
+            e.completeness_score,
+            e.specification_score,
+            e.knowledge_score,
+            e.total_score,
+            e.evaluate_time
+        FROM evaluation_record e
+        LEFT JOIN training_report r ON e.report_id = r.id
+        LEFT JOIN sys_user u ON r.student_id = u.id
+        LEFT JOIN sys_class c ON u.class_id = c.id
+        <where>
+            <if test="classId != null">
+                u.class_id = #{classId}
+            </if>
+        </where>
+        ORDER BY e.total_score DESC
+    </select>
+    
+</mapper>
