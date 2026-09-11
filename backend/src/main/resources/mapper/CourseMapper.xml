@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.training.mapper.CourseMapper">
+    
+    <resultMap id="CourseDTOMap" type="com.training.dto.CourseDTO">
+        <id column="id" property="id"/>
+        <result column="course_name" property="courseName"/>
+        <result column="description" property="description"/>
+        <result column="teacher_id" property="teacherId"/>
+        <result column="teacher_name" property="teacherName"/>
+        <result column="class_id" property="classId"/>
+        <result column="class_name" property="className"/>
+        <result column="create_time" property="createTime"/>
+        <result column="total_students" property="totalStudents"/>
+        <result column="total_reports" property="totalReports"/>
+        <result column="evaluated_reports" property="evaluatedReports"/>
+        <result column="avg_score" property="avgScore"/>
+    </resultMap>
+    
+    <select id="selectCoursePage" resultMap="CourseDTOMap">
+        SELECT 
+            co.id,
+            co.course_name,
+            co.description,
+            co.teacher_id,
+            t.real_name as teacher_name,
+            co.class_id,
+            c.class_name,
+            co.create_time,
+            (SELECT COUNT(*) FROM student_course sc WHERE sc.course_id = co.id) as total_students,
+            (SELECT COUNT(*) FROM training_report r WHERE r.course_id = co.id) as total_reports,
+            (SELECT COUNT(*) FROM training_report r LEFT JOIN evaluation_record e ON r.id = e.report_id WHERE r.course_id = co.id AND e.id IS NOT NULL) as evaluated_reports,
+            (SELECT AVG(e.total_score) FROM training_report r LEFT JOIN evaluation_record e ON r.id = e.report_id WHERE r.course_id = co.id AND e.total_score IS NOT NULL) as avg_score
+        FROM course co
+        LEFT JOIN sys_user t ON co.teacher_id = t.id
+        LEFT JOIN sys_class c ON co.class_id = c.id
+        <where>
+            <if test="teacherId != null">
+                AND co.teacher_id = #{teacherId}
+            </if>
+            <if test="classId != null">
+                AND co.class_id = #{classId}
+            </if>
+            <if test="courseName != null and courseName != ''">
+                AND co.course_name LIKE CONCAT('%', #{courseName}, '%')
+            </if>
+        </where>
+        ORDER BY co.create_time DESC
+    </select>
+    
+    <select id="selectCourseDetail" resultMap="CourseDTOMap">
+        SELECT 
+            co.id,
+            co.course_name,
+            co.description,
+            co.teacher_id,
+            t.real_name as teacher_name,
+            co.class_id,
+            c.class_name,
+            co.create_time,
+            (SELECT COUNT(*) FROM student_course sc WHERE sc.course_id = co.id) as total_students,
+            (SELECT COUNT(*) FROM training_report r WHERE r.course_id = co.id) as total_reports,
+            (SELECT COUNT(*) FROM training_report r LEFT JOIN evaluation_record e ON r.id = e.report_id WHERE r.course_id = co.id AND e.id IS NOT NULL) as evaluated_reports,
+            (SELECT AVG(e.total_score) FROM training_report r LEFT JOIN evaluation_record e ON r.id = e.report_id WHERE r.course_id = co.id AND e.total_score IS NOT NULL) as avg_score
+        FROM course co
+        LEFT JOIN sys_user t ON co.teacher_id = t.id
+        LEFT JOIN sys_class c ON co.class_id = c.id
+        WHERE co.id = #{id}
+    </select>
+    
+    <select id="selectStudentCourseIds" resultType="long">
+        SELECT course_id FROM student_course WHERE student_id = #{studentId}
+    </select>
+    
+</mapper>
