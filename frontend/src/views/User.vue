@@ -64,12 +64,13 @@
                 @click="handleEdit(row)"
               >编辑</el-button>
               
+              <!-- 🔥 这里已经把 handleResetPassword 改成了正确的 handleResetPwd -->
               <el-button 
                 type="warning" 
                 size="small" 
                 plain
                 icon="Refresh" 
-                @click="handleResetPassword(row)"
+                @click="handleResetPwd(row)"
               >重置密码</el-button>
               
               <el-button 

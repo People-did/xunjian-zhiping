@@ -24,6 +24,18 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   response => {
+    // 🔥 终极绝杀：如果是文件下载（二进制流 Blob 或 Excel），直接一路绿灯放行！不要去判断 code！
+    if (
+      response.config.responseType === 'blob' || 
+      (response.headers['content-type'] && (
+        response.headers['content-type'].includes('application/octet-stream') ||
+        response.headers['content-type'].includes('application/vnd.ms-excel') ||
+        response.headers['content-type'].includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      ))
+    ) {
+      return response.data
+    }
+
     const res = response.data
     if (res.code !== 200) {
       ElMessage.error(res.message || '请求失败')

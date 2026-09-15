@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <h2 class="page-title">评价管理</h2>
-    
+
     <div class="search-form">
       <el-form :inline="true" :model="searchForm">
         <el-form-item label="课程" v-if="isTeacher">
@@ -20,7 +20,7 @@
         </el-form-item>
       </el-form>
     </div>
-    
+
     <div class="table-container">
       <el-table :data="tableData" stripe v-loading="loading">
         <el-table-column prop="studentName" label="学生" />
@@ -63,7 +63,7 @@
           </template>
         </el-table-column>
       </el-table>
-      
+
       <div class="pagination-container">
         <el-pagination
           v-model:current-page="pagination.pageNum"
@@ -76,7 +76,7 @@
         />
       </div>
     </div>
-    
+
     <el-dialog v-model="detailVisible" title="报告评价多维详情看板" width="750px">
       <div v-if="currentEval">
         <el-descriptions :column="2" border>
@@ -93,7 +93,7 @@
             <b style="font-size: 18px; color: #409eff;">{{ currentEval.totalScore }} 分</b>
           </el-descriptions-item>
         </el-descriptions>
-        
+
         <div v-if="parsedDynamicScores" class="score-section">
           <h4 style="color: #e6a23c;"><el-icon><Compass /></el-icon> 教师定制化指标考核分布明细</h4>
           <div style="background: #fafafa; border: 1px solid #e4e7ed; border-radius: 6px; padding: 16px;">
@@ -102,10 +102,10 @@
                 <span class="dynamic-key-name">{{ key }}</span>
                 <span class="dynamic-key-val">得分：<b>{{ val.score }}</b> 分</span>
               </div>
-              <el-progress 
-                :percentage="calculatePercentage(val.score, key)" 
+              <el-progress
+                :percentage="calculatePercentage(val.score, key)"
                 :status="val.score >= 60 ? 'success' : 'exception'"
-                :stroke-width="12" 
+                :stroke-width="12"
               />
               <p class="dynamic-key-comment" v-if="val.comment">
                 <el-icon><ChatLineSquare /></el-icon> 维度评语：{{ val.comment }}
@@ -143,14 +143,14 @@
             </el-col>
           </el-row>
         </div>
-        
+
         <div v-if="parsedSuggestions && parsedSuggestions.length" class="evaluation-content" style="background: #f0f9eb; border: 1px solid #c2e7b0;">
           <h5 style="color: #67c23a; font-weight: bold; margin: 0 0 8px 0;"><el-icon><Opportunity /></el-icon> AI 赋能实训改进建议列表</h5>
           <ul style="margin: 0; padding-left: 20px; color: #606266; font-size: 13px; line-height: 1.8;">
             <li v-for="(sug, sIdx) in parsedSuggestions" :key="sIdx">{{ sug }}</li>
           </ul>
         </div>
-        
+
         <div v-if="currentEval.manualEvaluation" class="evaluation-content">
           <h5>教师终审定性备注</h5>
           <p style="margin: 0; font-size: 13px; color: #303133;">{{ currentEval.manualEvaluation }}</p>
@@ -160,20 +160,20 @@
         <el-button @click="detailVisible = false">关闭</el-button>
       </template>
     </el-dialog>
-    
+
     <el-dialog v-model="editVisible" title="教学质检 - 教师人工订正评分" width="520px">
       <el-form ref="formRef" :model="form" label-width="110px">
-        
+
         <div v-if="form.isCustom">
           <div style="background: #fff8f8; border: 1px solid #fde2e2; border-radius: 4px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #f56c6c;">
             当前作业启用大模型自定义评分标准。教师修改各单项分值后，系统将重构动态物理长口袋 JSON 数据包并重算大总分。
           </div>
           <el-form-item v-for="(item, key) in form.dynamicScores" :key="key" :label="String(key)">
-            <el-input-number 
-              v-model="item.score" 
-              :min="0" 
-              :max="getCustomMaxScore(key)" 
-              :precision="1" 
+            <el-input-number
+              v-model="item.score"
+              :min="0"
+              :max="getCustomMaxScore(key)"
+              :precision="1"
               :step="1"
             />
             <span style="font-size: 12px; color: #909399; margin-left: 10px;">(当前上限: {{ getCustomMaxScore(key) }}分)</span>
@@ -204,7 +204,7 @@
         <el-button type="primary" @click="handleSubmit">保存修正</el-button>
       </template>
     </el-dialog>
-    
+
     <!-- AI全格式评价弹窗（三步流程） -->
     <el-dialog v-model="aiDialogVisible" title="AI智能评价" width="700px" :close-on-click-modal="false">
       <!-- 步骤条 -->
@@ -350,9 +350,9 @@
         <el-button v-if="aiStep === 2" type="success" @click="finishAiEvaluate">完成，刷新列表</el-button>
       </template>
     </el-dialog>
-    
-    <el-button 
-      type="success" 
+
+    <el-button
+      type="success"
       class="ai-evaluate-btn"
       @click="aiDialogVisible = true"
     >
@@ -428,11 +428,8 @@ const getCustomMaxScore = (key) => {
 // 智能进度条转化比率函数
 const calculatePercentage = (score, key) => {
   const s = parseFloat(score) || 0
-  // 由于权重上限通常就是满分，为了在进度条美观展现(1-100比率)，我们可以基于权重自适应，这里简单以满分20-40反算：
-  // 为100%安全，如果单项分数<=20，可放大或直接按占总成绩百分比，这里直接根据分值呈现或按百分比展示：
   if (s <= 0) return 0
-  // 最稳妥解法：如果是已经换算出的得分，我们直接展示分值比例，防止element组件百分比超过100报错
-  return Math.min(Math.round(s * 2.5), 100) // 简易按2.5倍换算比例或者直接按分值
+  return Math.min(Math.round(s * 2.5), 100)
 }
 
 // 【计算属性】解析动态JSON分值细则
@@ -588,12 +585,11 @@ const handleSubmit = async () => {
 
     if (form.isCustom) {
       // 自定义标准包流转：把微调后的动态指标map包覆在 dynamicScores 口袋里安全提交
-      // 还原大模型最外层包含 scores, totalScore 的标准物理骨架
       const rawPayload = currentEval.value?.dynamicScoresJson ? JSON.parse(currentEval.value.dynamicScoresJson) : {}
       rawPayload.scores = form.dynamicScores
       rawPayload.totalScore = form.totalScore
-      
-      submitData.dynamicScores = rawPayload // 输送给后端一键解构落库
+
+      submitData.dynamicScores = rawPayload
     } else {
       // 传统包流转
       submitData.completenessScore = form.completenessScore
@@ -800,5 +796,6 @@ onMounted(() => {
   background: #f5f7fa;
   border-radius: 4px;
   h5 { margin-bottom: 8px; color: #606266; font-weight: bold; }
+  pre { white-space: pre-wrap; word-break: break-all; font-family: inherit; margin: 0; }
 }
 </style>
