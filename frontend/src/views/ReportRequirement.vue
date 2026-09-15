@@ -142,7 +142,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getMyCourses } from '../api/course'
-import request from '../utils/request' // 引入用于级联查出指标明细
+import request from '../utils/request'
 import { 
   getReportRequirementList, 
   deleteReportRequirement,
@@ -213,21 +213,11 @@ const goToEdit = (row) => {
   router.push({ path: '/report-requirement/edit', query: { id: row.id } })
 }
 
-// 查看详情：级联查出绑定的自定义标准条目
 const handleView = async (row) => {
   currentRequirement.value = { ...row, criteria: [] }
   if (row.hasCustomCriterion === 1) {
     try {
-      // 通过之前在物理表设计好的索引和关联机制，轻量化获取其标准集合
-      const res = await request.get(`/report-requirement/${row.id}`)
-      // 后端如果直接在 get 路由级联或者我们直接调查询接口：
-      const criterionRes = await request.get(`/report-requirement/course/${row.courseId}`) 
-      // 更加稳妥直接的做法：利用 MyBatis-Plus 自动查询或者发单独路由，这里假设后端 get 路由返回或者有独立映射
-      // 为了 100% 稳妥，我们直接向后端刚在 Service 加好的 getById 或对应机制要明细
       const details = await request.get(`/report-requirement/${row.id}`)
-      // 我们直接发起关联查询
-      const resCriteria = await request.get(`/report-requirement/course/${row.courseId}`)
-      // 稳妥拿到明细
       currentRequirement.value.criteria = details.data?.criteria || []
     } catch (e) {
       console.error(e)
@@ -285,9 +275,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.toolbar {
-  margin-bottom: 16px;
-}
+.toolbar { margin-bottom: 16px; }
 .content-section {
   margin-top: 20px;
   h4 { margin-bottom: 12px; color: #303133; }
@@ -305,17 +293,8 @@ onMounted(() => {
   gap: 12px;
   margin-bottom: 4px;
 }
-.criterion-name {
-  font-weight: bold;
-  color: #303133;
-  font-size: 14px;
-}
-.criterion-desc {
-  font-size: 13px;
-  color: #606266;
-  margin: 4px 0 0;
-  line-height: 1.6;
-}
+.criterion-name { font-weight: bold; color: #303133; font-size: 14px; }
+.criterion-desc { font-size: 13px; color: #606266; margin: 4px 0 0; line-height: 1.6; }
 .content-box {
   padding: 16px;
   background: #f5f7fa;

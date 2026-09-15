@@ -99,12 +99,12 @@
         <el-form-item label="成果文件" prop="files">
           <el-upload
             ref="uploadRef"
+            :file-list="fileList"
             :auto-upload="false"
             multiple
             :limit="20"
             :on-change="handleFileChange"
             :on-remove="handleFileRemove"
-            :file-list="fileList"
             accept=".doc,.docx,.pdf,.txt,.md,.py,.java,.js,.ts,.html,.css,.sql,.c,.cpp,.go,.rs,.php,.json,.xml,.yaml,.yml,.zip,.png,.jpg,.jpeg,.gif,.bmp,.webp"
             drag
           >
@@ -236,7 +236,6 @@ const uploadRules = {
   title: [{ required: true, message: '请输入成果标题', trigger: 'blur' }]
 }
 
-// 已选文件类型分类统计
 const fileCategories = computed(() => {
   const cats = {}
   fileList.value.forEach(f => {
@@ -271,23 +270,18 @@ const getFileTypeInfo = (ext) => {
   return map[ext] || { type: '其他', icon: '📁', color: '' }
 }
 
-// 如果从课程页面跳转过来，获取课程名称
 const courseName = computed(() => {
-  // 先从学生课程列表查找
   let course = studentCourses.value.find(c => c.id === currentCourseId.value)
   if (course) return course.courseName
-  // 再从全部课程列表查找
   course = allCourses.value.find(c => c.id === currentCourseId.value)
   return course?.courseName || ''
 })
 
-// 如果从班级页面跳转过来，获取班级名称
 const className = computed(() => {
   const cls = classes.value.find(c => c.id === currentClassId.value)
   return cls?.className || ''
 })
 
-// 获取页面标题
 const getPageTitle = () => {
   if (currentCourseId.value || currentClassId.value) {
     const parts = []
@@ -305,25 +299,15 @@ const loadData = async () => {
   loading.value = true
   try {
     let params = { pageNum: pagination.pageNum, pageSize: pagination.pageSize }
-    
     if (isStudent.value) {
-      // 学生：只能查看自己的报告，如果有 courseId 则按课程过滤
       params.courseId = currentCourseId.value || undefined
     } else {
-      // 教师/管理员：如果从课程页面跳转过来，只显示该课程的报告
-      if (currentCourseId.value) {
-        params.courseId = currentCourseId.value
-      }
-      // 如果从班级页面跳转过来，按班级过滤
-      if (currentClassId.value) {
-        params.classId = currentClassId.value
-      }
-      // 如果没有特殊过滤条件，使用搜索表单的条件
+      if (currentCourseId.value) params.courseId = currentCourseId.value
+      if (currentClassId.value) params.classId = currentClassId.value
       if (!currentCourseId.value && !currentClassId.value) {
         params = { ...searchForm, ...pagination }
       }
     }
-    
     const res = await getReportList(params)
     tableData.value = res.data.records
     pagination.total = res.data.total
@@ -374,7 +358,7 @@ const handleReset = () => {
 }
 
 const handleFileChange = (file) => {
-  // 收集所有已选文件的 raw 对象
+  // 收集所有已选文件的 raw 对象，确保新增的 file.raw 也被捕获
   uploadForm.files = fileList.value.map(f => f.raw).filter(Boolean)
   if (file.raw) {
     uploadForm.files = [...uploadForm.files, file.raw]
@@ -396,27 +380,26 @@ const handleUpload = async () => {
 
   uploading.value = true
   try {
+    // 🛠️ 【核心修复机制】精准纠偏现存会话中的学生主键ID：
+    // 1. 将原先残缺的 userId 全盘转换为标准持久层对应的 id
+    // 2. 如果因为缓存错位依然未拿到，则传入 0（后端控制器会通过 Security 自动覆盖补齐真正合法的 studentId）
+    const finalStudentId = userStore.userInfo?.id || userStore.userInfo?.userId || 0
+
     const formData = new FormData()
-    formData.append('studentId', userStore.userInfo.userId)
+    formData.append('studentId', finalStudentId)
     formData.append('courseId', uploadForm.courseId)
     formData.append('title', uploadForm.title)
 
-    // 多文件上传
     const files = fileList.value.map(f => f.raw).filter(Boolean)
-    files.forEach(file => {
-      formData.append('files', file)
-    })
 
     if (files.length > 1) {
+      files.forEach(file => {
+        formData.append('files', file)
+      })
       await uploadMultipleReports(formData)
     } else {
-      // 单文件走原有接口兼容
-      const singleForm = new FormData()
-      singleForm.append('studentId', userStore.userInfo.userId)
-      singleForm.append('courseId', uploadForm.courseId)
-      singleForm.append('title', uploadForm.title)
-      singleForm.append('file', files[0])
-      await uploadReport(singleForm)
+      formData.append('file', files[0])
+      await uploadReport(formData)
     }
 
     ElMessage.success(`成功上传 ${files.length} 个文件`)
@@ -483,7 +466,6 @@ onMounted(() => {
   loadAllCourses()
   if (isStudent.value) {
     loadStudentCourses().then(() => {
-      // 如果从报告要求跳转过来，自动填写课程和标题
       if (currentCourseId.value && requirementTitle.value) {
         uploadForm.courseId = currentCourseId.value
         uploadForm.title = requirementTitle.value
@@ -495,85 +477,26 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-container {
-  overflow: hidden;
-}
-
-.toolbar {
-  margin-bottom: 16px;
-}
-
-:deep(.el-table) {
-  overflow: hidden;
-}
-
-:deep(.el-table__body-wrapper) {
-  overflow-x: hidden !important;
-}
-
-.action-buttons {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 4px;
-}
-
-.score {
-  font-weight: bold;
-  color: #409eff;
-}
-
-.no-score {
-  color: #999;
-}
-
+.page-container { overflow: hidden; }
+.toolbar { margin-bottom: 16px; }
+:deep(.el-table) { overflow: hidden; }
+:deep(.el-table__body-wrapper) { overflow-x: hidden !important; }
+.action-buttons { display: flex; flex-wrap: nowrap; gap: 4px; }
+.score { font-weight: bold; color: #409eff; }
+.no-score { color: #999; }
 .score-section {
   margin-top: 20px;
-  
-  h4 {
-    margin-bottom: 16px;
-    color: #303133;
-  }
+  h4 { margin-bottom: 16px; color: #303133; }
 }
-
 .score-item {
-  text-align: center;
-  padding: 16px;
-  background: #f5f7fa;
-  border-radius: 4px;
-  
-  .label {
-    font-size: 14px;
-    color: #909399;
-    margin-bottom: 8px;
-  }
-  
-  .value {
-    font-size: 24px;
-    font-weight: bold;
-    color: #303133;
-  }
-  
-  &.total .value {
-    color: #409eff;
-  }
+  text-align: center; padding: 16px; background: #f5f7fa; border-radius: 4px;
+  .label { font-size: 14px; color: #909399; margin-bottom: 8px; }
+  .value { font-size: 24px; font-weight: bold; color: #303133; }
+  &.total .value { color: #409eff; }
 }
-
 .ai-evaluation, .manual-evaluation {
-  margin-top: 16px;
-  padding: 16px;
-  background: #f5f7fa;
-  border-radius: 4px;
-  
-  h5 {
-    margin-bottom: 8px;
-    color: #606266;
-  }
-  
-  pre {
-    white-space: pre-wrap;
-    word-break: break-all;
-    font-family: inherit;
-    margin: 0;
-  }
+  margin-top: 16px; padding: 16px; background: #f5f7fa; border-radius: 4px;
+  h5 { margin-bottom: 8px; color: #606266; }
+  pre { white-space: pre-wrap; word-break: break-all; font-family: inherit; margin: 0; }
 }
 </style>
